@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "doomarena-iot"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "paho-mqtt>=2.0",
+]
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.25"]
+openai = ["openai>=1.0"]
+ollama = ["ollama>=0.2"]
+doomarena = ["doomarena @ git+https://github.com/ServiceNow/DoomArena.git"]
+dev = ["pytest>=8.0", "pytest-cov"]
+
+[tool.setuptools]
+packages = ["common", "agent", "attacks", "harness", "ingest", "defense", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,6 @@
+defense: none       # none | D1 | D2
+attack_id: none     # none | A1 | A2 | A3 | A4
+n_trials: 5
+seed: 42
+llm_backend: mock
+llm_model: ""
