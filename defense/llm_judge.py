@@ -28,7 +28,7 @@ class D2Defense(Defense):
             {"role": "user", "content": f"{JUDGE_SYSTEM}\n\nDescription: {telemetry.description}"},
         ]
         response = self._llm.complete(messages=messages, tools=[])
-        verdict_text = response.content.strip().upper()
+        verdict_text = (response.content or "").strip().upper()
         if "UNSAFE" in verdict_text:
             return DefenseVerdict(
                 blocked=True,
