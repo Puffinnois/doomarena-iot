@@ -69,3 +69,14 @@ def test_reset_resets_trial_counter():
     env.reset()
     trace = env.step(TELEMETRY)
     assert trace.trial == 0
+
+
+def test_defense_blocks_telemetry():
+    from ingest.ingest import D1Defense
+    defense = D1Defense()
+    env = make_env(defense=defense)
+    env.reset()
+    bad = TELEMETRY.model_copy(update={"value": 99.0})
+    trace = env.step(bad)
+    assert trace.defense_verdict.blocked is True
+    assert trace.tool_calls == []
