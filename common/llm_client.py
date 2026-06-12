@@ -25,7 +25,8 @@ class MockLLMClient(LLMClient):
         tool_names = [t["name"] for t in tools]
         name = "set_thermostat" if "set_thermostat" in tool_names else (tool_names[0] if tool_names else "")
         full_prompt = " ".join(str(m.get("content", "")) for m in messages)
-        temp = 30.0 if ("OVERRIDE" in full_prompt or "99" in full_prompt) else 22.0
+        # Attack markers injected by A1 (MALFUNCTION in description) and A2 (OVERRIDE payload)
+        temp = 30.0 if ("OVERRIDE" in full_prompt or "MALFUNCTION" in full_prompt) else 22.0
         args = {"room_id": "room-a", "temp": temp} if name == "set_thermostat" else {}
         return LLMResponse(
             content="Setting thermostat based on sensor data.",
