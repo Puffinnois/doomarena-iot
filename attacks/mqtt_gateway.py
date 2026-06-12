@@ -43,7 +43,7 @@ class MqttAttackGateway(AttackGateway):
         for ac in self._attack_configs:
             # Check pre-filter (AttackFilter) if present
             if hasattr(ac, "filter") and ac.filter is not None:
-                if not ac.filter(telemetry):
+                if not ac.filter(modified):
                     continue
             # Get attack payload
             payload = ac.attack.get_next_attack(telemetry=modified)
