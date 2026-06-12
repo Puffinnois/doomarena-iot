@@ -23,11 +23,13 @@ class MockLLMClient(LLMClient):
 
     def complete(self, messages: list[dict], tools: list[dict]) -> LLMResponse:
         tool_names = [t["name"] for t in tools]
-        # Pick set_thermostat if available, else first tool
-        name = "set_thermostat" if "set_thermostat" in tool_names else tool_names[0]
+        name = "set_thermostat" if "set_thermostat" in tool_names else (tool_names[0] if tool_names else "")
+        full_prompt = " ".join(str(m.get("content", "")) for m in messages)
+        temp = 30.0 if ("OVERRIDE" in full_prompt or "99" in full_prompt) else 22.0
+        args = {"room_id": "room-a", "temp": temp} if name == "set_thermostat" else {}
         return LLMResponse(
             content="Setting thermostat based on sensor data.",
-            tool_calls=[{"name": name, "args": {"room_id": "room-a", "temp": 22.0}}],
+            tool_calls=[{"name": name, "args": args}] if name else [],
         )
 
 
