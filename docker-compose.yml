@@ -76,3 +76,22 @@ services:
       - ./.env:/app/.env:ro
     depends_on:
       - broker
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    container_name: doomarena-dashboard
+    ports:
+      - "8000:8000"
+    environment:
+      - MQTT_HOST=broker
+      - MQTT_PORT=1883
+      - LLM_BACKEND=mock
+      - LLM_MODEL=
+      - SEED=42
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./results:/app/results
+    depends_on:
+      - broker

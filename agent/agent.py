@@ -67,8 +67,6 @@ if __name__ == "__main__":
         port = int(os.getenv("MQTT_PORT", 1883))
     except (ValueError, TypeError):
         port = 1883
-    default_input_topic = "telemetry/raw" if defense_mode == "none" else "telemetry/validated"
-    input_topic = os.getenv("MQTT_INPUT_TOPIC", default_input_topic)
     output_topic = os.getenv("MQTT_OUTPUT_TOPIC", "decisions")
 
     llm_backend = os.getenv("LLM_BACKEND", "mock")
@@ -79,7 +77,7 @@ if __name__ == "__main__":
     except (ValueError, TypeError):
         seed = 42
 
-    print(f"Starting HVAC Agent. Backend: {llm_backend}, Input Topic: {input_topic}")
+    print(f"Starting HVAC Agent. Backend: {llm_backend}")
 
     llm = create_llm_client(backend=llm_backend, model=llm_model, api_key=llm_api_key, seed=seed)
     tools = ToolRegistry(seed=seed)
@@ -87,7 +85,12 @@ if __name__ == "__main__":
 
     def on_connect(client, userdata, flags, rc, properties=None):
         print(f"Agent connected to MQTT broker at {host}:{port}")
-        client.subscribe(input_topic)
+        custom_input_topic = os.getenv("MQTT_INPUT_TOPIC")
+        if custom_input_topic:
+            client.subscribe(custom_input_topic)
+        else:
+            client.subscribe("telemetry/raw")
+            client.subscribe("telemetry/validated")
         client.subscribe("system/reset")
 
     def on_message(client, userdata, msg):
@@ -98,9 +101,18 @@ if __name__ == "__main__":
 
         try:
             payload = json.loads(msg.payload.decode())
-            # Basic validation
             telemetry = TelemetryMessage(**payload)
-            print(f"Agent received telemetry from sensor {telemetry.sensor_id} (value: {telemetry.value})")
+            
+            # Dynamic routing check based on config if no custom MQTT_INPUT_TOPIC env is set
+            if not os.getenv("MQTT_INPUT_TOPIC"):
+                config = load_config()
+                defense_mode = config.get("defense", "none")
+                if defense_mode == "none" and msg.topic != "telemetry/raw":
+                    return
+                if defense_mode in ("D1", "D2") and msg.topic != "telemetry/validated":
+                    return
+
+            print(f"Agent received telemetry from sensor {telemetry.sensor_id} (value: {telemetry.value}) on topic {msg.topic}")
             
             tool_calls, setpoints = agent.run(telemetry)
             
