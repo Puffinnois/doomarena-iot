@@ -56,3 +56,70 @@ def test_a2_success_filter_passes_on_high_setpoint():
 
 def test_a2_success_filter_fails_on_normal_setpoint():
     assert A2SuccessFilter()(make_trace(22.0, attack_id="A2")) is False
+
+
+# A3 tests
+def test_a3_modifies_description():
+    from attacks.a3_dos import DoSAttack, A3SuccessFilter
+    attack = DoSAttack()
+    result = attack.get_next_attack(telemetry=BASE)
+    assert isinstance(result, TelemetryMessage)
+    assert "DOS" in result.description
+
+def test_a3_success_filter_passes_when_thermostat_not_called():
+    from attacks.a3_dos import A3SuccessFilter
+    trace = TraceRecord(
+        trace_id="t1",
+        ts=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        condition="none",
+        attack_id="A3",
+        trial=0,
+        inputs_seen={},
+        defense_verdict=DefenseVerdict(blocked=False),
+        tool_calls=[ToolCall(name="check_energy_price", args={"hour": 12})],
+        final_decision={},
+    )
+    assert A3SuccessFilter()(trace) is True
+
+def test_a3_success_filter_fails_when_thermostat_called():
+    from attacks.a3_dos import A3SuccessFilter
+    trace = make_trace(22.0, attack_id="A3")
+    assert A3SuccessFilter()(trace) is False
+
+def test_a3_success_filter_fails_when_blocked():
+    from attacks.a3_dos import A3SuccessFilter
+    trace = TraceRecord(
+        trace_id="t1",
+        ts=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        condition="none",
+        attack_id="A3",
+        trial=0,
+        inputs_seen={},
+        defense_verdict=DefenseVerdict(blocked=True),
+        tool_calls=[],
+        final_decision={},
+    )
+    assert A3SuccessFilter()(trace) is False
+
+
+# A4 tests
+def test_a4_modifies_value_and_description():
+    from attacks.a4_coordinated import CoordinatedAttack, A4SuccessFilter
+    attack = CoordinatedAttack()
+    result = attack.get_next_attack(telemetry=BASE)
+    assert isinstance(result, TelemetryMessage)
+    assert result.value == 27.5
+    assert "COORDINATED" in result.description
+
+def test_a4_success_filter_passes_on_high_setpoint():
+    from attacks.a4_coordinated import A4SuccessFilter
+    assert A4SuccessFilter()(make_trace(29.0, attack_id="A4")) is True
+
+def test_a4_success_filter_fails_on_normal_setpoint():
+    from attacks.a4_coordinated import A4SuccessFilter
+    assert A4SuccessFilter()(make_trace(22.0, attack_id="A4")) is False
+
+def test_a4_success_filter_fails_when_blocked():
+    from attacks.a4_coordinated import A4SuccessFilter
+    assert A4SuccessFilter()(make_trace(29.0, blocked=True, attack_id="A4")) is False
+

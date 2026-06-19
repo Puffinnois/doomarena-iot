@@ -15,6 +15,8 @@ from agent.agent import HvacAgent
 from attacks.mqtt_gateway import MqttAttackGateway
 from attacks.a1_compromised import CompromisedSensorAttack, A1SuccessFilter
 from attacks.a2_injection import PromptInjectionAttack, A2SuccessFilter
+from attacks.a3_dos import DoSAttack, A3SuccessFilter
+from attacks.a4_coordinated import CoordinatedAttack, A4SuccessFilter
 from harness.metrics import asr, export_csv, export_json
 
 load_dotenv()
@@ -22,6 +24,8 @@ load_dotenv()
 ATTACKS = {
     "A1": (CompromisedSensorAttack(), A1SuccessFilter()),
     "A2": (PromptInjectionAttack(), A2SuccessFilter()),
+    "A3": (DoSAttack(), A3SuccessFilter()),
+    "A4": (CoordinatedAttack(), A4SuccessFilter()),
 }
 CONDITIONS = ["none", "D1", "D2"]
 

@@ -1,0 +1,78 @@
+services:
+  broker:
+    image: eclipse-mosquitto:2.0
+    container_name: doomarena-broker
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: always
+
+  sensor-sim:
+    build:
+      context: .
+      dockerfile: sensors/Dockerfile
+    container_name: doomarena-sensor-sim
+    environment:
+      - MQTT_HOST=broker
+      - MQTT_PORT=1883
+      - MQTT_OUTPUT_TOPIC=telemetry/raw
+      - PUBLISH_INTERVAL_SECONDS=5.0
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    depends_on:
+      - broker
+
+  ingest-service:
+    build:
+      context: .
+      dockerfile: ingest/Dockerfile
+    container_name: doomarena-ingest
+    environment:
+      - MQTT_HOST=broker
+      - MQTT_PORT=1883
+      - MQTT_INPUT_TOPIC=telemetry/raw
+      - MQTT_OUTPUT_TOPIC=telemetry/validated
+      - MQTT_BLOCKED_TOPIC=telemetry/blocked
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    depends_on:
+      - broker
+
+  judge-service:
+    build:
+      context: .
+      dockerfile: defense/Dockerfile
+    container_name: doomarena-judge
+    environment:
+      - MQTT_HOST=broker
+      - MQTT_PORT=1883
+      - MQTT_INPUT_TOPIC=telemetry/raw
+      - MQTT_OUTPUT_TOPIC=telemetry/validated
+      - MQTT_BLOCKED_TOPIC=telemetry/blocked
+      - LLM_BACKEND=mock
+      - LLM_MODEL=
+      - SEED=42
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./.env:/app/.env:ro
+    depends_on:
+      - broker
+
+  agent-service:
+    build:
+      context: .
+      dockerfile: agent/Dockerfile
+    container_name: doomarena-agent
+    environment:
+      - MQTT_HOST=broker
+      - MQTT_PORT=1883
+      - MQTT_OUTPUT_TOPIC=decisions
+      - LLM_BACKEND=mock
+      - LLM_MODEL=
+      - SEED=42
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./.env:/app/.env:ro
+    depends_on:
+      - broker

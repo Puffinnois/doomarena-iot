@@ -1,0 +1,11 @@
+.venv/
+venv/
+.git/
+.gitignore
+__pycache__/
+*.pyc
+results/
+.system_generated/
+.idea/
+.vscode/
+*.egg-info/
