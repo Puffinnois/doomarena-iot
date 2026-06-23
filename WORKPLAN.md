@@ -70,7 +70,7 @@ gateway + A1 + its `SuccessFilter` are integrated and produce the first ASR numb
 
 - `git init` + GitHub remote; feature branches per task (`feat/<area>-<thing>`).
 - Every PR reviewed by the other developer; `main` always stays `docker compose up`-clean.
-- Secrets only in a gitignored `.env`; `.env.example` is committed.
+- Secrets only in a gitignored `.env` (documented by inline comments + the README).
 - Fixed random seeds; document the number of trials; every number in the paper
   comes from a real logged run in `results/` — no invented figures.
 

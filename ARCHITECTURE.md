@@ -127,7 +127,8 @@ This is the seam between "build the system" (Track A) and "measure attacks"
 > NOTE: Claude Pro / ChatGPT Plus subscriptions do **not** grant API access.
 > Real runs need an API key (separate pay-as-you-go billing) or Ollama.
 
-Never commit keys. `.env` (gitignored) + `.env.example`.
+Never commit keys. Secrets live only in a gitignored `.env` (see its inline
+comments and the README for the available variables).
 
 ---
 
