@@ -1,9 +1,10 @@
+import csv
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from common.schemas import TraceRecord, DefenseVerdict, ToolCall
 from attacks.a1_compromised import A1SuccessFilter
-from harness.metrics import asr, export_csv, export_json
+from harness.metrics import asr, export_csv, export_json, export_asr_summary
 
 
 def make_trace(temp: float, blocked: bool = False) -> TraceRecord:
@@ -47,3 +48,16 @@ def test_export_json_is_valid(tmp_path):
     export_json([("A1", "none", [make_trace(22.0)])], path)
     data = json.loads(Path(path).read_text())
     assert isinstance(data, list) and data[0]["attack_id"] == "A1"
+
+
+def test_export_asr_summary_writes_rows(tmp_path):
+    path = str(tmp_path / "asr_summary.csv")
+    asr_table = {"A1": {"none": 0.27, "D1": 0.0}, "A2": {"none": 0.37}}
+    export_asr_summary(asr_table, path)
+    with open(path, newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows == [
+        {"attack_id": "A1", "condition": "none", "asr": "0.27"},
+        {"attack_id": "A1", "condition": "D1", "asr": "0.0"},
+        {"attack_id": "A2", "condition": "none", "asr": "0.37"},
+    ]

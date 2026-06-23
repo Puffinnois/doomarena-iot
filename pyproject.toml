@@ -12,6 +12,7 @@ dependencies = [
     "paho-mqtt>=2.0",
     "python-dotenv>=1.0",
     "flask>=3.0",
+    "matplotlib>=3.8",
 ]
 
 [project.optional-dependencies]

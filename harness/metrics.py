@@ -25,6 +25,15 @@ def export_csv(results: ConditionResults, path: str) -> None:
                 ])
 
 
+def export_asr_summary(asr_table: dict[str, dict[str, float]], path: str) -> None:
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["attack_id", "condition", "asr"])
+        for attack_id, conditions in asr_table.items():
+            for condition, rate in conditions.items():
+                writer.writerow([attack_id, condition, rate])
+
+
 def export_json(results: ConditionResults, path: str) -> None:
     rows = []
     for attack_id, condition, traces in results:
