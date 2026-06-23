@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 import yaml
-from flask import Flask, render_template_string, request, redirect, url_for, send_from_directory
+from flask import Flask, render_template_string, request, redirect, url_for
 
 from common.schemas import ExperimentConfig, TelemetryMessage, TraceRecord
 from common.llm_client import create_llm_client
@@ -586,28 +586,6 @@ HTML_TEMPLATE = """
         </div>
     </header>
 
-    <section class="panel card asr-panel" style="margin-bottom: 1.5rem;">
-        <h2>ASR Summary Charts</h2>
-        {% if not asr_heatmap_url and not asr_bars_url %}
-            <div class="empty-state">No charts yet. Run harness/visualize.py to generate the ASR heatmap and bar chart.</div>
-        {% else %}
-            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
-                {% if asr_heatmap_url %}
-                    <div style="flex: 1; min-width: 320px;">
-                        <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">ASR Heatmap</h3>
-                        <img src="{{ asr_heatmap_url }}" alt="ASR Heatmap" style="width: 100%; border-radius: 0.75rem; border: 1px solid var(--border-color);">
-                    </div>
-                {% endif %}
-                {% if asr_bars_url %}
-                    <div style="flex: 1; min-width: 320px;">
-                        <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">ASR by Attack/Defense</h3>
-                        <img src="{{ asr_bars_url }}" alt="ASR Bar Chart" style="width: 100%; border-radius: 0.75rem; border: 1px solid var(--border-color);">
-                    </div>
-                {% endif %}
-            </div>
-        {% endif %}
-    </section>
-
     <main class="dashboard-grid">
         <!-- Controls Column -->
         <section class="panel card controls-panel">
@@ -895,13 +873,6 @@ def load_config() -> dict:
         "llm_model": ""
     }
 
-def latest_chart_urls() -> tuple[str | None, str | None]:
-    heatmaps = sorted(RESULTS_DIR.glob("asr_heatmap_*.png"))
-    bars = sorted(RESULTS_DIR.glob("asr_bars_*.png"))
-    heatmap_url = url_for("serve_result", filename=heatmaps[-1].name) if heatmaps else None
-    bars_url = url_for("serve_result", filename=bars[-1].name) if bars else None
-    return heatmap_url, bars_url
-
 def save_config(defense: str, attack_id: str) -> None:
     config_path = os.getenv("CONFIG_PATH", "config.yaml")
     current = load_config()
@@ -912,10 +883,6 @@ def save_config(defense: str, attack_id: str) -> None:
             yaml.safe_dump(current, f)
     except Exception as e:
         print(f"Error writing config: {e}")
-
-@app.route("/results/<path:filename>")
-def serve_result(filename):
-    return send_from_directory(RESULTS_DIR.resolve(), filename)
 
 @app.route("/", methods=["GET"])
 def index():
@@ -984,8 +951,6 @@ def index():
     if not selected_trace and traces:
         selected_trace = traces[0]
 
-    asr_heatmap_url, asr_bars_url = latest_chart_urls()
-
     return render_template_string(
         HTML_TEMPLATE,
         defense=defense,
@@ -993,8 +958,6 @@ def index():
         is_live_mqtt=is_live_mqtt,
         traces=traces,
         selected_trace=selected_trace,
-        asr_heatmap_url=asr_heatmap_url,
-        asr_bars_url=asr_bars_url,
     )
 
 @app.route("/config", methods=["POST"])
