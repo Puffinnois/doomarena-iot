@@ -59,46 +59,41 @@ def test_a2_success_filter_fails_on_normal_setpoint():
 
 
 # A3 tests
-def test_a3_modifies_description():
-    from attacks.a3_dos import DoSAttack, A3SuccessFilter
+def test_a3_increments_burst_seq_each_call():
+    from attacks.a3_dos import DoSAttack
     attack = DoSAttack()
-    result = attack.get_next_attack(telemetry=BASE)
-    assert isinstance(result, TelemetryMessage)
-    assert "DOS" in result.description
+    first = attack.get_next_attack(telemetry=BASE)
+    second = attack.get_next_attack(telemetry=BASE)
+    assert isinstance(first, TelemetryMessage)
+    assert first.burst_seq == 1
+    assert second.burst_seq == 2
 
-def test_a3_success_filter_passes_when_thermostat_not_called():
-    from attacks.a3_dos import A3SuccessFilter
-    trace = TraceRecord(
+def make_a3_trace(burst_seq: int, blocked: bool = False) -> TraceRecord:
+    return TraceRecord(
         trace_id="t1",
         ts=datetime(2026, 1, 1, tzinfo=timezone.utc),
         condition="none",
         attack_id="A3",
         trial=0,
-        inputs_seen={},
-        defense_verdict=DefenseVerdict(blocked=False),
-        tool_calls=[ToolCall(name="check_energy_price", args={"hour": 12})],
-        final_decision={},
+        inputs_seen={"burst_seq": burst_seq},
+        defense_verdict=DefenseVerdict(blocked=blocked),
+        tool_calls=[ToolCall(name="set_thermostat", args={"room_id": "room-a", "temp": 22.0})],
+        final_decision={"room-a": 22.0},
     )
+
+def test_a3_success_filter_passes_above_saturation_threshold():
+    from attacks.a3_dos import A3SuccessFilter, SATURATION_THRESHOLD
+    trace = make_a3_trace(burst_seq=SATURATION_THRESHOLD + 1)
     assert A3SuccessFilter()(trace) is True
 
-def test_a3_success_filter_fails_when_thermostat_called():
-    from attacks.a3_dos import A3SuccessFilter
-    trace = make_trace(22.0, attack_id="A3")
+def test_a3_success_filter_fails_below_saturation_threshold():
+    from attacks.a3_dos import A3SuccessFilter, SATURATION_THRESHOLD
+    trace = make_a3_trace(burst_seq=SATURATION_THRESHOLD - 1)
     assert A3SuccessFilter()(trace) is False
 
-def test_a3_success_filter_fails_when_blocked():
-    from attacks.a3_dos import A3SuccessFilter
-    trace = TraceRecord(
-        trace_id="t1",
-        ts=datetime(2026, 1, 1, tzinfo=timezone.utc),
-        condition="none",
-        attack_id="A3",
-        trial=0,
-        inputs_seen={},
-        defense_verdict=DefenseVerdict(blocked=True),
-        tool_calls=[],
-        final_decision={},
-    )
+def test_a3_success_filter_fails_when_blocked_even_above_threshold():
+    from attacks.a3_dos import A3SuccessFilter, SATURATION_THRESHOLD
+    trace = make_a3_trace(burst_seq=SATURATION_THRESHOLD + 5, blocked=True)
     assert A3SuccessFilter()(trace) is False
 
 

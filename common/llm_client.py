@@ -39,13 +39,6 @@ class MockLLMClient(LLMClient):
         # Agent mode: pick set_thermostat, simulate susceptibility to attack markers
         tool_names = [t["name"] for t in tools]
         name = "set_thermostat" if "set_thermostat" in tool_names else (tool_names[0] if tool_names else "")
-        
-        # A3 Saturation / DoS: return no tool calls to simulate missed decision
-        if "FLOOD" in full_prompt or "DOS" in full_prompt:
-            return LLMResponse(
-                content="System saturated. Decision missed.",
-                tool_calls=[],
-            )
 
         # Attack markers injected by A1, A2, A4
         if "COORDINATED" in full_prompt or "CONSENSUS" in full_prompt:

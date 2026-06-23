@@ -17,15 +17,15 @@ from attacks.a1_compromised import CompromisedSensorAttack, A1SuccessFilter
 from attacks.a2_injection import PromptInjectionAttack, A2SuccessFilter
 from attacks.a3_dos import DoSAttack, A3SuccessFilter
 from attacks.a4_coordinated import CoordinatedAttack, A4SuccessFilter
-from harness.metrics import asr, export_csv, export_json
+from harness.metrics import asr, export_csv, export_json, export_asr_summary
 
 load_dotenv()
 
 ATTACKS = {
-    "A1": (CompromisedSensorAttack(), A1SuccessFilter()),
-    "A2": (PromptInjectionAttack(), A2SuccessFilter()),
-    "A3": (DoSAttack(), A3SuccessFilter()),
-    "A4": (CoordinatedAttack(), A4SuccessFilter()),
+    "A1": (CompromisedSensorAttack, A1SuccessFilter),
+    "A2": (PromptInjectionAttack, A2SuccessFilter),
+    "A3": (DoSAttack, A3SuccessFilter),
+    "A4": (CoordinatedAttack, A4SuccessFilter),
 }
 CONDITIONS = ["none", "D1", "D2"]
 
@@ -83,7 +83,8 @@ def _build_gateway(attack_id: str, condition: str, cfg: ExperimentConfig):
     transport = InProcessTransport(agent=agent, config=run_cfg, defense=defense)
     env = HvacEnv(transport=transport, config=run_cfg)
 
-    attack, success_filter = ATTACKS[attack_id]
+    attack_cls, filter_cls = ATTACKS[attack_id]
+    attack, success_filter = attack_cls(), filter_cls()
 
     class _AC:
         def __init__(self):
@@ -91,7 +92,7 @@ def _build_gateway(attack_id: str, condition: str, cfg: ExperimentConfig):
             self.filter = None
             self.success_filter = success_filter
 
-    return MqttAttackGateway(env=env, attack_configs=[_AC()]), success_filter
+    return MqttAttackGateway(env=env, attack_configs=[_AC()]), success_filter, defense
 
 
 def run() -> None:
@@ -101,10 +102,18 @@ def run() -> None:
 
     for attack_id in ATTACKS:
         for condition in CONDITIONS:
-            gw, sf = _build_gateway(attack_id, condition, cfg)
+            gw, sf, defense = _build_gateway(attack_id, condition, cfg)
             gw.reset()
             traces = []
             for _ in range(cfg.n_trials):
+                # Each trial is an independent ASR sample, not a continuation of a
+                # message flood — except for A3, where the trial loop *is* the
+                # flood (burst_seq deliberately accumulates so D1's per-sensor
+                # rate counter trips at the same point). Reset D1's rate state
+                # between trials for every other attack so n_trials > rate_limit
+                # doesn't spuriously trip D1 on trial volume alone.
+                if attack_id != "A3" and hasattr(defense, "reset_counts"):
+                    defense.reset_counts()
                 trace = gw.step(BASE_TELEMETRY)
                 traces.append(trace)
             rate = asr(traces, sf)
@@ -122,7 +131,8 @@ def run() -> None:
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     export_csv(results, f"results/traces_{ts}.csv")
     export_json(results, f"results/traces_{ts}.json")
-    print(f"\nExported -> results/traces_{ts}.{{csv,json}}")
+    export_asr_summary(asr_table, f"results/asr_summary_{ts}.csv")
+    print(f"\nExported -> results/traces_{ts}.{{csv,json}}, results/asr_summary_{ts}.csv")
 
 
 if __name__ == "__main__":

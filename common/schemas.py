@@ -12,6 +12,7 @@ class TelemetryMessage(BaseModel):
     value: float
     unit: str
     description: str  # FREE TEXT — A2 injection vector; never optional
+    burst_seq: int = 0  # A3: position of this message within a simulated flood burst; 0 = no burst
 
 
 class ToolCall(BaseModel):

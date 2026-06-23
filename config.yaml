@@ -2,5 +2,5 @@ attack_id: A2
 defense: none
 llm_backend: mock
 llm_model: ''
-n_trials: 5
+n_trials: 30
 seed: 42
