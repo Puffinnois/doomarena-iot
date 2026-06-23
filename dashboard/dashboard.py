@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 import yaml
+from dotenv import load_dotenv
 from flask import Flask, render_template_string, request, redirect, url_for
 
 from common.schemas import ExperimentConfig, TelemetryMessage, TraceRecord
@@ -20,6 +21,8 @@ from attacks.a1_compromised import CompromisedSensorAttack, A1SuccessFilter
 from attacks.a2_injection import PromptInjectionAttack, A2SuccessFilter
 from attacks.a3_dos import DoSAttack, A3SuccessFilter
 from attacks.a4_coordinated import CoordinatedAttack, A4SuccessFilter
+
+load_dotenv()
 
 app = Flask(__name__)
 
